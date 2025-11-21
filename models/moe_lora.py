@@ -60,9 +60,20 @@ class MoE_LoRA_MLP(nn.Module):
             down = self.forward_dense(x, self.original.fc1, routing, self.moe_down)
         else:
             down = self.forward_sparse(x, self.original.fc1, index, self.moe_down)
-        x = self.original.act_fn(down) if hasattr(self.original, 'act_fn') else self.original.activation(down)
+        if hasattr(self.original, 'act'):
+            x = self.original.act(down)
+        elif hasattr(self.original, 'activation'):
+            x = self.original.activation(down)
+        elif hasattr(self.original, 'act_fn'):
+            x = self.original.act_fn(down)
+        else:
+            x = F.gelu(down)
+        if hasattr(self.original, 'drop'):
+            x = self.original.drop(x)
         if self.dense_moe:
             x = self.forward_dense(x, self.original.fc2, routing, self.moe_up)
         else:
             x = self.forward_sparse(x, self.original.fc2, index, self.moe_up)
+        if hasattr(self.original, 'drop'):
+            x = self.original.drop(x)
         return x, (routing, expert_choice)

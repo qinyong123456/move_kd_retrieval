@@ -15,9 +15,9 @@ class CLIPViTBaseTeacher(nn.Module):
         out = self.vision(images, output_hidden_states=True, output_attentions=True)
         hs = out.hidden_states[-2]
         attn = out.attentions[-2].mean(1)
-        tokens = hs[:, 1:]
-        cls = hs[:, 0]
-        token_weight = torch.softmax(attn[:, 0, 1:], dim=-1)
+        tokens = hs[:, 1:].to(images.device)
+        cls = hs[:, 0].to(images.device)
+        token_weight = torch.softmax(attn[:, 0, 1:], dim=-1).to(images.device)
         return tokens, cls, token_weight
 
 class EVA02Teacher(nn.Module):
@@ -43,8 +43,8 @@ class EVA02Teacher(nn.Module):
             x = x + blk.attn(blk.norm1(x))
             x = x + blk.mlp(blk.norm2(x))
         x = self.model.norm(x)
-        cls = x[:, 0]
-        tokens = x[:, 1:]
+        cls = x[:, 0].to(images.device)
+        tokens = x[:, 1:].to(images.device)
         return tokens, cls
 
 class ConvNeXtTeacher(nn.Module):
@@ -57,6 +57,6 @@ class ConvNeXtTeacher(nn.Module):
     def forward(self, images):
         feats = self.model(images)[-1]
         B, C, H, W = feats.shape
-        tokens = feats.flatten(2).transpose(1, 2)
-        cls = tokens.mean(dim=1)
+        tokens = feats.flatten(2).transpose(1, 2).to(images.device)
+        cls = tokens.mean(dim=1).to(images.device)
         return tokens, cls

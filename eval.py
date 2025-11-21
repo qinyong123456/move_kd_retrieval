@@ -1,6 +1,11 @@
 import torch
 from torch.utils.data import DataLoader
-from move_kd_retrieval.data.flickr30k import Flickr30kDataset
+try:
+    from move_kd_retrieval.data.flickr30k import Flickr30kDataset
+except ModuleNotFoundError:
+    import os, sys
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from data.flickr30k import Flickr30kDataset
 from transformers import CLIPTokenizer, CLIPTextModel
 
 def encode_texts(tokenizer, model, texts):

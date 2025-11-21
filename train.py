@@ -20,8 +20,8 @@ def encode_text(tokenizer, text_model, texts):
     emb = nn.functional.normalize(emb, dim=-1)
     return emb
 
-def train(root, epochs=1, batch_size=32, lr=1e-4, kd_w=0.5, moe_balance_w=0.01, device='cuda'):
-    ds = Flickr30kDataset(root, split='train')
+def train(root=None, epochs=1, batch_size=32, lr=1e-4, kd_w=0.5, moe_balance_w=0.01, device='cuda', images_dir=None, captions_txt=None):
+    ds = Flickr30kDataset(root=root, split='train', images_dir=images_dir, captions_txt=captions_txt)
     dl = DataLoader(ds, batch_size=batch_size, shuffle=True, num_workers=4, drop_last=True)
     student = StudentViTS(num_experts=3, lora_rank=32, lora_alpha=1, dense_moe=False, embed_dim=512).to(device)
     clip_t = CLIPViTBaseTeacher().to(device)
@@ -79,7 +79,9 @@ def train(root, epochs=1, batch_size=32, lr=1e-4, kd_w=0.5, moe_balance_w=0.01, 
 if __name__ == '__main__':
     import argparse
     p = argparse.ArgumentParser()
-    p.add_argument('--root', type=str, required=True)
+    p.add_argument('--root', type=str, default=None)
+    p.add_argument('--images_dir', type=str, default=None)
+    p.add_argument('--captions_txt', type=str, default=None)
     p.add_argument('--epochs', type=int, default=1)
     p.add_argument('--batch_size', type=int, default=16)
     p.add_argument('--lr', type=float, default=1e-4)
@@ -87,4 +89,4 @@ if __name__ == '__main__':
     p.add_argument('--moe_balance_w', type=float, default=0.01)
     p.add_argument('--device', type=str, default='cuda')
     args = p.parse_args()
-    train(args.root, args.epochs, args.batch_size, args.lr, args.kd_w, args.moe_balance_w, args.device)
+    train(args.root, args.epochs, args.batch_size, args.lr, args.kd_w, args.moe_balance_w, args.device, args.images_dir, args.captions_txt)

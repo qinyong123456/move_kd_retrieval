@@ -9,8 +9,8 @@ def encode_texts(tokenizer, model, texts):
     emb = out.last_hidden_state[:, 0]
     return torch.nn.functional.normalize(emb, dim=-1)
 
-def evaluate(student, root, batch_size=64, device='cuda'):
-    ds = Flickr30kDataset(root, split='val')
+def evaluate(student, root=None, batch_size=64, device='cuda', images_dir=None, captions_txt=None):
+    ds = Flickr30kDataset(root=root, split='val', images_dir=images_dir, captions_txt=captions_txt)
     dl = DataLoader(ds, batch_size=batch_size, shuffle=False)
     tokenizer = CLIPTokenizer.from_pretrained('openai/clip-vit-base-patch16')
     text_model = CLIPTextModel.from_pretrained('openai/clip-vit-base-patch16').to(device)

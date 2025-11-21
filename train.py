@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from transformers import CLIPTokenizer, CLIPTextModel
+from PIL import Image
 try:
     from move_kd_retrieval.models.student_vit import StudentViTS
     from move_kd_retrieval.models.teachers import CLIPViTBaseTeacher, EVA02Teacher, ConvNeXtTeacher
@@ -49,7 +50,13 @@ def train(root=None, epochs=1, batch_size=32, lr=1e-4, kd_w=0.5, moe_balance_w=0
             imgs = imgs.to(device)
             img_emb, v_tokens, routings = student(imgs)
             with torch.no_grad():
-                clip_images = clip_t.processor(images=[(imgs[i].mul(0.5).add(0.5).clamp(0,1).permute(1,2,0).cpu().numpy()) for i in range(imgs.size(0))], return_tensors='pt')['pixel_values'].to(device)
+                denorm = imgs.clone()
+                mean = torch.tensor([0.48145466, 0.4578275, 0.40821073], device=denorm.device).view(1,3,1,1)
+                std = torch.tensor([0.26862954, 0.26130258, 0.27577711], device=denorm.device).view(1,3,1,1)
+                denorm = denorm * std + mean
+                denorm = denorm.clamp(0, 1)
+                pil_batch = [Image.fromarray((denorm[i].permute(1,2,0).cpu().numpy()*255).astype('uint8')) for i in range(denorm.size(0))]
+                clip_images = clip_t.processor(images=pil_batch, return_tensors='pt')['pixel_values'].to(device)
                 clip_tokens, clip_cls, token_weight = clip_t(clip_images)
                 eva_tokens, eva_cls = eva_t(imgs)
                 conv_tokens, conv_cls = conv_t(imgs)

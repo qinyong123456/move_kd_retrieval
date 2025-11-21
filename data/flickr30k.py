@@ -1,6 +1,7 @@
 import os
 import json
 from PIL import Image
+import re
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
@@ -15,12 +16,13 @@ class Flickr30kDataset(Dataset):
             with open(captions_txt, 'r', encoding='utf-8') as f:
                 lines = [l.strip() for l in f if l.strip()]
             pairs = []
+            pat = re.compile(r"^\s*([^\s,#]+\.(?:jpg|jpeg|png))[,#\s]*(?:\d+)?\s*(.*)$", re.IGNORECASE)
             for l in lines:
-                parts = l.split(' ', 1)
-                if len(parts) < 2:
+                m = pat.match(l)
+                if not m:
                     continue
-                name_part, cap = parts[0], parts[1]
-                img_name = name_part.split('#')[0]
+                img_name = m.group(1).strip()
+                cap = m.group(2).strip().strip('"')
                 pairs.append({'image': img_name, 'caption': cap})
             order = []
             seen = set()

@@ -5,20 +5,13 @@ from transformers import CLIPTokenizer, CLIPTextModel
 from PIL import Image
 import math
 import torch.nn.functional as F
-try:
-    from move_kd_retrieval.models.student_vit import StudentViTS
-    from move_kd_retrieval.models.teachers import CLIPViTBaseTeacher, EVA02Teacher, ConvNeXtTeacher
-    from move_kd_retrieval.models.adapters import TeacherAdapters
-    from move_kd_retrieval.losses import ContrastiveLoss, weighted_mse
-    from move_kd_retrieval.data.flickr30k import Flickr30kDataset
-except ModuleNotFoundError:
-    import os, sys
-    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-    from models.student_vit import StudentViTS
-    from models.teachers import CLIPViTBaseTeacher, EVA02Teacher, ConvNeXtTeacher
-    from models.adapters import TeacherAdapters
-    from losses import ContrastiveLoss, weighted_mse
-    from data.flickr30k import Flickr30kDataset
+import os, sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from models.student_vit import StudentViTS
+from models.teachers import CLIPViTBaseTeacher, EVA02Teacher, ConvNeXtTeacher
+from models.adapters import TeacherAdapters
+from losses import ContrastiveLoss, weighted_mse
+from data.flickr30k import Flickr30kDataset
 
 def build_text_encoder(name='openai/clip-vit-base-patch16'):
     tok = CLIPTokenizer.from_pretrained(name)

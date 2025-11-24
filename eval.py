@@ -25,7 +25,8 @@ def evaluate(student, root=None, batch_size=64, device='cuda', images_dir=None, 
     for img, cap in dl:
         img = img.to(device)
         with torch.no_grad():
-            emb, _, _ = student(img)
+            out = student(img)
+            emb = out[0]
         img_embs.append(emb.cpu())
         caps.extend(list(cap))
     img_embs = torch.cat(img_embs, dim=0)
@@ -42,3 +43,21 @@ def evaluate(student, root=None, batch_size=64, device='cuda', images_dir=None, 
     r5 = (ranks[:, :5] == gt).any(dim=1).float().mean().item()
     r10 = (ranks[:, :10] == gt).any(dim=1).float().mean().item()
     return {"R@1": r1, "R@5": r5, "R@10": r10}
+
+if __name__ == '__main__':
+    import argparse
+    from models.student_vit import StudentViTS
+    import os, sys
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    p = argparse.ArgumentParser()
+    p.add_argument('--images_dir', type=str, required=True)
+    p.add_argument('--captions_txt', type=str, required=True)
+    p.add_argument('--weights', type=str, required=True)
+    p.add_argument('--batch_size', type=int, default=64)
+    p.add_argument('--device', type=str, default='cuda')
+    args = p.parse_args()
+    m = StudentViTS().to(args.device)
+    m.load_state_dict(torch.load(args.weights, map_location=args.device))
+    m.eval()
+    res = evaluate(m, images_dir=args.images_dir, captions_txt=args.captions_txt, batch_size=args.batch_size, device=args.device)
+    print(res)

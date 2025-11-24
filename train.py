@@ -25,7 +25,7 @@ def encode_text(tokenizer, text_model, texts):
     emb = nn.functional.normalize(emb, dim=-1)
     return emb
 
-def train(root=None, epochs=1, batch_size=32, lr=1e-4, kd_w=0.5, moe_balance_w=0.01, device='cuda', images_dir=None, captions_txt=None):
+def train(root=None, epochs=1, batch_size=32, lr=1e-4, kd_w=0.5, moe_balance_w=0.01, device='cuda', images_dir=None, captions_txt=None, output_dir=None, save_every=0):
     ds = Flickr30kDataset(root=root, split='train', images_dir=images_dir, captions_txt=captions_txt)
     dl = DataLoader(ds, batch_size=batch_size, shuffle=True, num_workers=4, drop_last=True)
     student = StudentViTS(num_experts=3, lora_rank=32, lora_alpha=1, dense_moe=False, embed_dim=512).to(device)
@@ -122,6 +122,14 @@ def train(root=None, epochs=1, batch_size=32, lr=1e-4, kd_w=0.5, moe_balance_w=0
             if step_idx % log_interval == 0:
                 print(f"epoch {epoch+1}/{epochs} step {step_idx}/{total_steps} loss {epoch_loss_sum/step_idx:.4f} kd {epoch_kd_sum/step_idx:.4f} align {epoch_align_sum/step_idx:.4f}")
         print(f"epoch {epoch+1} done avg_loss {epoch_loss_sum/total_steps:.4f} avg_kd {epoch_kd_sum/total_steps:.4f} avg_align {epoch_align_sum/total_steps:.4f}")
+        if output_dir and save_every and ((epoch + 1) % save_every == 0):
+            os.makedirs(output_dir, exist_ok=True)
+            torch.save(student.state_dict(), os.path.join(output_dir, f"student_epoch{epoch+1}.pt"))
+            print(f"saved {os.path.join(output_dir, f'student_epoch{epoch+1}.pt')}\n")
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+        torch.save(student.state_dict(), os.path.join(output_dir, "student_final.pt"))
+        print(f"saved {os.path.join(output_dir, 'student_final.pt')}\n")
     return student
 
 if __name__ == '__main__':
@@ -137,6 +145,8 @@ if __name__ == '__main__':
     p.add_argument('--moe_balance_w', type=float, default=0.01)
     p.add_argument('--device', type=str, default='cuda')
     p.add_argument('--log_interval', type=int, default=10)
+    p.add_argument('--output_dir', type=str, default=None)
+    p.add_argument('--save_every', type=int, default=0)
     args = p.parse_args()
     train.log_interval = args.log_interval
-    train(args.root, args.epochs, args.batch_size, args.lr, args.kd_w, args.moe_balance_w, args.device, args.images_dir, args.captions_txt)
+    train(args.root, args.epochs, args.batch_size, args.lr, args.kd_w, args.moe_balance_w, args.device, args.images_dir, args.captions_txt, args.output_dir, args.save_every)
